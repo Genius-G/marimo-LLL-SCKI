@@ -6,12 +6,21 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _(mo):
-    mo.vstack([
-        mo.accordion({
-            "🗬 Neuronale Netze":r"""
+    mo.vstack(
+        [
+            mo.accordion(
+                {
+                    "🗬 Neuronale Netze": r"""
     # Neuronale Netze
 
-    Das Perzeptron besteht aus einer festen Anzahl Inputs (abhängig von den Dimensionen der Punkte, die als Datengrundlage dienen), Gewichten mit denen die Eingaben mulipliziert und zusammen mit dem Bias addiert werden und einer Aktivierungsfunktion. Diesen Aufbau bezeichnen wir im Folgenden als <b>Neuron</b>.
+    Ein Neuronales Netz besteht aus Schichten aus Neuronen. Ein einzelnes Neuron, auch als Perzeptron bezeichnet, besteht aus ...
+
+    - einer festen Anzahl <b>Inputs</b> (abhängig von den Dimensionen der Punkte, die als Datengrundlage dienen)
+    - <b>Gewichten</b> mit denen die Eingaben mulipliziert 
+    - und zusammen mit dem <b>Bias</b> addiert werden und 
+    - einer <b>Aktivierungsfunktion</b>. 
+
+    Diesen Aufbau bezeichnen wir im Folgenden als <b>Neuron</b>.
 
     <figure>
       <img src="public/resources/img/perzeptron.png" alt="perzeptron" style="width:70%">
@@ -54,55 +63,71 @@ def _(mo):
     Jetzt fehlt nur noch eine kleine Änderung, um ein herkömmliches neuronales Netz zu erhalten. Wie im vorletzten Abschnitt bereits umrissen, wird die Klassifikation des Datenpunkts jetzt nicht mehr durch eine 0- oder 1-Ausgabe des letzten Neurons ermittelt, sondern durch die Nummer des Neurons in der Ausgabeschicht, das die größte Ausgabe hat. Durch die neue ReLU-Aktivierungsfunktion erhalten wir in der letzten Ausgabeschicht nicht mehr 0- oder 1-Ausgaben, sondern Werte größer oder gleich 0. 
     Um als Ausgabe des neuronalen Netzes die Wahrscheinlichkeit zu erhalten, mit der ein Datenpunkt einer Klasse zugeordnet wird, wird eine am Ende eine zusätzliche Schicht mit einer speziellen Aktivierungsfunktion (Softmax-Funktion) eingefügt, deren Gewichte nicht trainiert werden.
     """
-        }),
-        mo.md(
-        r"""
+                }
+            ),
+            mo.md(
+                r"""
     <figure>
       <img src="public/resources/img/nn2.png" alt="perzeptron" style="width:80%">
     </figure> 
 
-    Jetzt sind wir bereit unser erstes neuronales Netz in Code umzusetzen. Damit wir nicht alles selbst implementieren müssen, verwenden wir die Bibliothek <i>PyTorch</i>, die von einem Facebook-Forschungsteam entwickelt wurde.
+    Jetzt sind wir bereit unser erstes neuronales Netz in Code umzusetzen. Damit wir nicht alles selbst implementieren müssen, verwenden wir die Funktionen `FullyConnectedLayer()` sowie die `relu()` und `softmax()` Aktivierungsfunktion. Diese verwendenen die Software Library <i>Numpy</i>.
 
     ## Numpy
 
-    Numpy bietet eine sehr einfache Weise, neuronale Netze zu konstruieren. Gehe das folgende Codefeld durch und führe es aus, um mit den Funktionsaufrufen vertraut zu werden. Wir konstruieren dabei das obige neuronale Netze mit vier Eingabe- und drei Ausgabeneuronen.
+    Numpy ermöglicht es auf eine sehr einfache Weise, neuronale Netze zu konstruieren. Gehe das folgende Codefeld durch und führe es aus, um mit den Funktionsaufrufen vertraut zu werden. Wir konstruieren dabei das obige neuronale Netze mit vier Eingabe- und drei Ausgabeneuronen.
     """
+            ),
+        ]
     )
-    ])
     return
 
 
 @app.cell
 def _(FullyConnectedLayer, np, relu, softmax):
     class Net:
+        # Im Konstruktor werden die unterschiedlichen Schichten definiert
         def __init__(self, num_in, num_out):
             self.name_model = "Netzi"
 
-            # Define layers that mimic the torch layers
-            self.fc1 = FullyConnectedLayer(num_in, 5)      # first layer: num_in -> 5 
-            self.fc2 = FullyConnectedLayer(5, 5)             # second layer: 5 ->5
-            self.fc3 = FullyConnectedLayer(5, num_out, bias=False)  # third layer: 5 -> num_out, no bias
+            # Durch den folgenden Funktionsaufruf wird eine Schicht mit num_in eingehenden 
+            # und 5 ausgehenden Verbindungen konstruiert.
+            # Den Namen der Schichten kannst du selbst festlegen.
+            # fc steht für fully connected.
+            self.fc1 = FullyConnectedLayer(num_in, 5)  
+            # Achte darauf, dass die folgende Schicht die Anzahl der eingehenden Verbindungen
+            # mit den ausgehenden Verbindungen der letzten Schicht übereinstimmt.
+            self.fc2 = FullyConnectedLayer(5, 5)  # second layer: 5 ->5
+            # Standardmäßig wird zu jedem Neuron ein Bias hinzugefügt. Durch den Parameter
+            # 'bias' kann das deaktiviert werden.
+            self.fc3 = FullyConnectedLayer(
+                5, num_out, bias=False
+            )
 
+        # In dieser Funktion muss festgelegt werden, wie die Eingabe durch das Netz propagiert wird (d.h. durch
+        # die einzelnen Schichten „weitergereicht“ wird).
         def forward(self, x):
-            # First layer + ReLU
-            x = relu(self.fc1.forward(x))
-            # Second layer + ReLU
-            x = relu(self.fc2.forward(x))
-            # Third layer (no ReLU here)
-            x = self.fc3.forward(x)
-            # Softmax on output layer
-            x = softmax(x)
-            return x
+            # Zunächst wird die Eingabe mit den Gewichten der ersten Schicht multipliziert, 
+            # in den einzelnen Neuronen aufsummiert und anschließend in die ReLU-Funktion eingesetzt.
+            output = relu(self.fc1.forward(x))
+            # Die verarbeitete Eingabe wird nun durch die zweite Schicht propagiert. 
+            output = relu(self.fc2.forward(output))
+            # In der vorletzten Schicht gibt es keine ReLU-Funktion mehr.
+            output = self.fc3.forward(output)
+            # finale Ausgabe des neuronalen Netzes
+            output = softmax(output)
+            return output
 
         def __str__(self):
-            # Simple representation of the network layers
+            # Um beim Aufruf print() die Parameter ablesen zu können
             rep = f"Model name: {self.name_model}\n"
             rep += "Layer 1 (fc1):\n" + str(self.fc1) + "\n"
             rep += "Layer 2 (fc2):\n" + str(self.fc2) + "\n"
             rep += "Layer 3 (fc3):\n" + str(self.fc3)
             return rep
 
-    # Create an instance of the network with 4 input features and 3 output features.
+
+    # Erzeugung eines Objekts des neuronalen Netzes
     erstes_nn = Net(4, 3)
     print(f"Hallo mein Name ist {erstes_nn.name_model}!\n")
 
@@ -123,12 +148,13 @@ def _(FullyConnectedLayer, np, relu, softmax):
     if erstes_nn.fc3.use_bias:
         print("Bias:\n", erstes_nn.fc3.bias)
 
-    # Test input vector
+    # Das ist eine Testeingabe
     test_eingabe = np.array([1.0, 2.5, -1, 0])
 
-    # Make predictions using the forward method.
+    # Die Ausgabe erhälst du so
     ausgabe = erstes_nn.forward(test_eingabe)
     print("\nAusgabe (Ergebnis des Vorwärtsdurchlaufs):", ausgabe)
+
     return (erstes_nn,)
 
 
@@ -165,7 +191,7 @@ def _(erstes_nn, pruefe_gewichte):
     # Bias des zweiten Neurons der zweiten verdeckten Schicht
     gewicht3 = 0
 
-    # Gewicht zwischen dem vierten Neuron der zweiten verdeckten Schicht 
+    # Gewicht zwischen dem vierten Neuron der zweiten verdeckten Schicht
     # und dem dritten Neuron der dritten verdeckten Schicht
     gewicht4 = 0
 
@@ -208,12 +234,13 @@ def _(np):
 
 @app.cell
 def _(mo):
-    mo.accordion({
-        "Tipp 1": "Sieh dir nochmal die Definition von `class Net` an.",
-        "Tipp 2": "Du brauchst um ein eigenes neuronales Netz zu implementieren eine eigene Klasse mit 2 Eingaben und 2 Ausgaben sowie 2 versteckten Schichten",
-        "Tipp 3": "Tipp 3",
-        "Lösung":mo.md(
-        r"""
+    mo.accordion(
+        {
+            "Tipp 1": "Sieh dir nochmal die Definition von `class Net` an.",
+            "Tipp 2": "Du brauchst um ein eigenes neuronales Netz zu implementieren eine eigene Klasse mit 2 Eingaben und 2 Ausgaben sowie 2 versteckten Schichten",
+            "Tipp 3": "Tipp 3",
+            "Lösung": mo.md(
+                r"""
     ```python
     class Net_1:
             def __init__(self, num_in, num_out):
@@ -229,15 +256,18 @@ def _(mo):
                 return x
     ```
     """
-    ),
-    })
+            ),
+        }
+    )
     return
 
 
 @app.cell
 def _(mo):
-    mo.vstack([mo.md(
-        r"""
+    mo.vstack(
+        [
+            mo.md(
+                r"""
     Bis jetzt haben wir zwar neuronale Netze konstruiert, aber sie noch nicht trainieren lassen. Die vorhandenen Trainingsdaten müssen wir nutzen, um die Gewichte so anzupassen, dass das neuronale Netz auf den Testdaten (die wir nicht für das Training benutzen) gute Ergebnisse erzielt. Im nächsten Abschnitt schauen wir uns an, wie das funktioniert.
 
     ## Backpropagation
@@ -263,8 +293,11 @@ def _(mo):
 
 
     <i>Wenn wir z.B. einen Datenpunkt betrachten, der ein Blaumeisen-Ei repräsentiert, dann ist die optimale Ausgabe bei drei möglichen Klassen (Klasse 0 = Blaumeisen, Klasse 1 = Ente, Klasse 2 = Greifvogel) der Vektor $(1, 0, 0)$. Wenn die tatsächliche Ausgabe des neuronalen Netzes $(0.5, 0.25, 0.25)$ ist, was ist dann der Verlust nach der oberen Formel?</i>
-    """),
-    mo.accordion({r"Klicke hier, um deine Antwort zu prüfen.":r"""$$\dfrac{1}{3} \bigl[ (1 - 0.5)^2 + (0 - 0.25)^2 + (0 - 0.25)^2 \bigr] = 0.375.$$
+    """
+            ),
+            mo.accordion(
+                {
+                    r"Klicke hier, um deine Antwort zu prüfen.": r"""$$\dfrac{1}{3} \bigl[ (1 - 0.5)^2 + (0 - 0.25)^2 + (0 - 0.25)^2 \bigr] = 0.375.$$
 
     Wenn das neuronale Netz nur ein Gewicht hat, könnte die Verlustfunktion so aussehen:
 
@@ -272,9 +305,10 @@ def _(mo):
       <img src="public/resources/img/loss_function2.png" alt="Verlustfunktion" style="width:45%">
     </figure> 
 
-    Das aktuelle Gewicht $w_1$ von $0.7$ muss also ein bisschen vergrößert werden, um den Verlust zu verkleinern."""}),
-
-    mo.md(r"""
+    Das aktuelle Gewicht $w_1$ von $0.7$ muss also ein bisschen vergrößert werden, um den Verlust zu verkleinern."""
+                }
+            ),
+            mo.md(r"""
     Wenn das neuronale Netz nur zwei Gewichte hat, könnte eine Verlustfunktion wie folgt aussehen. Bei mehr als zwei Gewichten (in der Praxis eingesetzte neuronale Netze haben Millionen von trainierbaren Gewichten) ist eine Visualisierung allerdings nicht mehr so einfach möglich.
 
     <figure>
@@ -304,16 +338,19 @@ def _(mo):
     ## Training eines neuronalen Netzes
 
     Nach so viel Theorie können wir endlich neuronale Netze trainieren lassen! Untersuche den Code, um dein eigenes neuronales Netz weiter unten an die Daten anzupassen.
-    """
-         )])
+    """),
+        ]
+    )
     return
 
 
 @app.cell
 def _(daten, datenpunkte_zeichnen):
     (x_train, y_train, x_test, y_test) = daten()
-    print(f'Wir haben {len(y_train)} Trainingsdatenpunkte und {len(y_test)} Testdatenpunkte zur Verfügung.')
-    datenpunkte_zeichnen(x_train, y_train, ['#ec90cc', '#4f7087'])
+    print(
+        f"Wir haben {len(y_train)} Trainingsdatenpunkte und {len(y_test)} Testdatenpunkte zur Verfügung."
+    )
+    datenpunkte_zeichnen(x_train, y_train, ["#ec90cc", "#4f7087"])
     return x_train, y_train
 
 
@@ -362,7 +399,7 @@ def _(FullyConnectedLayer, relu, softmax):
 
 @app.cell
 def _(Net_1):
-    net = Net_1(2,2)
+    net = Net_1(2, 2)
     print(net)
     return (net,)
 
@@ -381,8 +418,8 @@ def _(cross_entropy_loss, net, np, softmax, x_train, y_train):
         # Loop over each sample; here we have just one sample.
         for x, label in zip(x_train, y_train):
             # Forward pass:
-            output = net.forward(x)          # raw scores (logits)
-            probs = softmax(output)            # convert scores to probabilities
+            output = net.forward(x)  # raw scores (logits)
+            probs = softmax(output)  # convert scores to probabilities
 
             # Compute loss:
             loss = cross_entropy_loss(probs, label)
@@ -407,8 +444,10 @@ def _(cross_entropy_loss, net, np, softmax, x_train, y_train):
             net.fc2.update_params(lr)
 
         # Because we have one sample, accuracy is 100% if correct else 0%
-        accuracy = (correct / len(x_train)) * 100  
-        print(f"Epoch {epoch+1:3d} | Loss: {epoch_loss:.5f} | Accuracy: {accuracy:.1f}%")
+        accuracy = (correct / len(x_train)) * 100
+        print(
+            f"Epoch {epoch + 1:3d} | Loss: {epoch_loss:.5f} | Accuracy: {accuracy:.1f}%"
+        )
 
     print("\nTrained network parameters:")
     print(net)
@@ -432,8 +471,10 @@ def _(mo):
 @app.cell
 def _(daten2, datenpunkte_zeichnen):
     (x_train_1, y_train_1, x_test_1, y_test_1) = daten2()
-    print(f'Wir haben {len(y_train_1)} Trainingsdatenpunkte und {len(y_test_1)} Testdatenpunkte zur Verfügung.')
-    datenpunkte_zeichnen(x_train_1, y_train_1, ['#ec90cc', '#8b4513', '#4f7087'])
+    print(
+        f"Wir haben {len(y_train_1)} Trainingsdatenpunkte und {len(y_test_1)} Testdatenpunkte zur Verfügung."
+    )
+    datenpunkte_zeichnen(x_train_1, y_train_1, ["#ec90cc", "#8b4513", "#4f7087"])
     return
 
 
@@ -445,7 +486,7 @@ def _():
 
 @app.cell
 def _():
-    # Erzeuge hier das Objekt deiner Klasse und den Optimizer. 
+    # Erzeuge hier das Objekt deiner Klasse und den Optimizer.
     # Lege hier außerdem deine Loss-Funktion und die Anzahl der Epochen fest.
     return
 
@@ -455,7 +496,7 @@ def _():
     # Implementiere hier deinen Trainingsprozess.
     # Breche den Trainingsprozess ab, wenn eine Genauigkeit von 93% auf den
     # Trainingsdaten erreicht wurde.
-    # Speicher außerdem immer das bisher beste Model mit deepcopy(model) 
+    # Speicher außerdem immer das bisher beste Model mit deepcopy(model)
     # in einer Variablen ab.
 
     from copy import deepcopy
@@ -483,7 +524,9 @@ def _(mo):
 @app.cell
 def _():
     import numpy as np
+
     np.random.seed(0)
+
 
     class FullyConnectedLayer:
         def __init__(self, input_dim, output_dim, bias=True):
@@ -514,7 +557,9 @@ def _():
                 output: array of shape (output_dim,) or (batch_size, output_dim)
             """
             self.x = x  # cache input for use in backward pass
-            y = np.dot(x, self.weight.T)  # if x is (batch,) then use (batch, output_dim)
+            y = np.dot(
+                x, self.weight.T
+            )  # if x is (batch,) then use (batch, output_dim)
             if self.use_bias:
                 y += self.bias
             return y
@@ -535,7 +580,7 @@ def _():
             # If inputs are 1D, promote them to 2D arrays for batch processing
             single_sample = False
             if self.x.ndim == 1:
-                x = self.x[None, :]   # shape: (1, input_dim)
+                x = self.x[None, :]  # shape: (1, input_dim)
                 dout = dout[None, :]  # shape: (1, output_dim)
                 single_sample = True
             else:
@@ -544,7 +589,7 @@ def _():
             # Compute gradients with respect to weight and bias
             # Note: weight shape: (output_dim, input_dim)
             # x.T shape: (input_dim, batch_size) and dout shape: (batch_size, output_dim)
-            # so to get grad_weight shape (output_dim, input_dim): 
+            # so to get grad_weight shape (output_dim, input_dim):
             self.grad_weight = np.dot(dout.T, x) / x.shape[0]  # average over batch
 
             if self.use_bias:
@@ -570,22 +615,25 @@ def _():
                 self.bias -= lr * self.grad_bias
 
         def __str__(self):
-            s = f'Weights shape: {self.weight.shape}\n'
+            s = f"Weights shape: {self.weight.shape}\n"
             if self.use_bias:
-                s += f'Bias shape: {self.bias.shape}\n'
+                s += f"Bias shape: {self.bias.shape}\n"
             else:
-                s += 'Bias disabled\n'
+                s += "Bias disabled\n"
             return s
+
 
     # Example utility functions
     def relu(x):
         return np.maximum(0, x)
+
 
     def softmax(x):
         # Numerically stable softmax
         x_shifted = x - np.max(x, axis=-1, keepdims=True)
         exp_x = np.exp(x_shifted)
         return exp_x / np.sum(exp_x, axis=-1, keepdims=True)
+
 
     def cross_entropy_loss(probs, label):
         """
@@ -604,6 +652,7 @@ def _():
 def _(np):
     import matplotlib.pyplot as plt
     from matplotlib import colors
+
 
     def pruefe_gewichte(nn, gewicht1, gewicht2, gewicht3, gewicht4):
         """
@@ -642,7 +691,7 @@ def _(np):
             result += "Das dritte Gewicht hast du richtig abgelesen!\n"
         else:
             result += "Das dritte Gewicht hast du nicht richtig abgelesen!\n"
-            wrong = True 
+            wrong = True
 
         if g4 == round(gewicht4, 4):
             result += "Das vierte Gewicht hast du richtig abgelesen!\n"
@@ -666,7 +715,7 @@ def _(np):
         """
         # Create base data (all ones)
         n_data_train = np.ones((200, 2))
-        n_data_test  = np.ones((50, 2))
+        n_data_test = np.ones((50, 2))
 
         # Create training data:
         # Class 0: Normal distribution centered at [2.5, 5] (for all 200 samples)
@@ -691,6 +740,7 @@ def _(np):
 
         return x_train, y_train, x_test, y_test
 
+
     def datenpunkte_zeichnen(x_data, labels, farben):
         """
         Parameters:
@@ -698,7 +748,13 @@ def _(np):
           labels: A NumPy array with the class labels of each data point.
           farben: A list of color names for the classes.
         """
-        plt.scatter(x_data[:, 0], x_data[:, 1], c=labels, s=50, cmap=colors.ListedColormap(farben))
+        plt.scatter(
+            x_data[:, 0],
+            x_data[:, 1],
+            c=labels,
+            s=50,
+            cmap=colors.ListedColormap(farben),
+        )
         plt.show()
 
 
@@ -733,12 +789,12 @@ def _(np):
         x2_test = np.random.normal(loc=n_data_test + np.array([10, 2]), scale=1.0)
         y2_test = 2 * np.ones(50, dtype=int)
 
-        x_test = np.concatenate((x0_test, x1_test, x2_test), axis=0).astype(np.float32)
+        x_test = np.concatenate((x0_test, x1_test, x2_test), axis=0).astype(
+            np.float32
+        )
         y_test = np.concatenate((y0_test, y1_test, y2_test), axis=0)
 
         return x_train, y_train, x_test, y_test
-
-
     return daten, daten2, datenpunkte_zeichnen, pruefe_gewichte
 
 
