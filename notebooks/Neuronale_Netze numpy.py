@@ -1,10 +1,10 @@
 import marimo
 
 __generated_with = "0.13.15"
-app = marimo.App(width="medium")
+app = marimo.App()
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.vstack(
         [
@@ -158,18 +158,12 @@ def _(FullyConnectedLayer, np, relu, softmax):
     return (erstes_nn,)
 
 
-@app.cell
-def _(mo):
-    mo.md(r"""# Aufgabe 1""")
-    return
-
-
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
     ____
-
+    # Aufgabe 1
     <img style="float: left;" src="public/resources/img/laptop_icon.png" width=50 height=50 /> <br><br>
 
     <i>Im letzten Codefeld wurden unser erstes neuronales Netz erzeugt. Lies die gesuchten Gewichte anhand der letzten Ausgabe ab und überprüfe deine Eingabe, indem du das Codefeld ausführst. Runde gegebenenfalls die Eingaben auf die vierte Nachkommastelle ab.</i>
@@ -199,18 +193,12 @@ def _(erstes_nn, pruefe_gewichte):
     return
 
 
-@app.cell
-def _(mo):
-    mo.md(r"""# Aufgabe 2""")
-    return
-
-
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
     ____
-
+    # Aufgabe 2
     <img style="float: left;" src="public/resources/img/laptop_icon.png" width=50 height=50 /> <br><br>
 
     <i>Jetzt bist du bereit ein neuronales Netz eigenständig zu konstruieren. Implementiere das abgebildete neuronale Netz und gib das Ergebnis des durchpropagierten Datenpunkts an.</i>
@@ -238,7 +226,6 @@ def _(mo):
         {
             "Tipp 1": "Sieh dir nochmal die Definition von `class Net` an.",
             "Tipp 2": "Du brauchst um ein eigenes neuronales Netz zu implementieren eine eigene Klasse mit 2 Eingaben und 2 Ausgaben sowie 2 versteckten Schichten",
-            "Tipp 3": "Tipp 3",
             "Lösung": mo.md(
                 r"""
     ```python
@@ -262,7 +249,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.vstack(
         [
@@ -376,7 +363,7 @@ def _(mo):
 
 @app.cell
 def _(FullyConnectedLayer, relu, softmax):
-    class Net_1:
+    class Net_2:
         def __init__(self, num_in, num_out):
             # First fully connected layer maps from num_in to 2
             self.fc1 = FullyConnectedLayer(num_in, 2)
@@ -394,12 +381,12 @@ def _(FullyConnectedLayer, relu, softmax):
             rep += "Layer 1 (fc1):\n" + str(self.fc1) + "\n"
             rep += "Layer 2 (fc2):\n" + str(self.fc2) + "\n"
             return rep
-    return (Net_1,)
+    return (Net_2,)
 
 
 @app.cell
-def _(Net_1):
-    net = Net_1(2, 2)
+def _(Net_2):
+    net = Net_2(2, 2)
     print(net)
     return (net,)
 
@@ -459,7 +446,7 @@ def _(mo):
     mo.md(
         r"""
     ____
-
+    # Aufgabe 3
     <img style="float: left;" src="public/resources/img/laptop_icon.png" width=50 height=50 /> <br><br>
 
     <i>Du kennst nun alle Codebausteine, um dein eigenes neuronales Netz zu konstruieren und es trainieren zu lassen. Setze ein neuronales Netz für die folgenden Daten um und passe die Gewichte an den Datensatz an. Brich das Training ab, sobald das Netz eine 93%-Genauigkeit auf dem Trainingsdatensatz erzielt. Speichere außerdem in jeder Epoche das Netz, das über alle vergangenen Durchläufe hinweg die höchste Genauigkeit erreicht hat.</i>
