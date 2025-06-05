@@ -220,7 +220,7 @@ def _(np):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.accordion(
         {
@@ -338,10 +338,10 @@ def _(daten, datenpunkte_zeichnen):
         f"Wir haben {len(y_train)} Trainingsdatenpunkte und {len(y_test)} Testdatenpunkte zur Verfügung."
     )
     datenpunkte_zeichnen(x_train, y_train, ["#ec90cc", "#4f7087"])
-    return x_train, y_train
+    return x_test, x_train, y_test, y_train
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
@@ -368,7 +368,7 @@ def _(FullyConnectedLayer, relu, softmax):
             # First fully connected layer maps from num_in to 2
             self.fc1 = FullyConnectedLayer(num_in, 2)
             # Second fully connected layer maps from 2 to 2
-            self.fc2 = FullyConnectedLayer(2, 2)
+            self.fc2 = FullyConnectedLayer(2, num_out)
 
         def forward(self, x):
             x = relu(self.fc1.forward(x))
@@ -392,56 +392,102 @@ def _(Net_2):
 
 
 @app.cell
-def _(cross_entropy_loss, net, np, softmax, x_train, y_train):
-    # Hyperparameters:
-    epochs = 10
-    lr = 0.1
+def _(
+    cross_entropy_loss,
+    evaluate_model,
+    net,
+    np,
+    softmax,
+    x_test,
+    x_train,
+    y_test,
+    y_train,
+):
+    # Hyperparameter:
+    epochs = 10  # Anzahl der Epochen (Durchläufe)
+    lr = 0.1     # Lernrate
 
-    # Training loop:
-    for epoch in range(epochs):
-        epoch_loss = 0.0
-        correct = 0
+    # Berechnung der Genauigkeit auf den Testdaten vor dem Training
+    print(
+        f"Testgenauigkeit vor dem Training: {evaluate_model(net, x_test, y_test):.1f}%"
+    )
 
-        # Loop over each sample; here we have just one sample.
-        for x, label in zip(x_train, y_train):
-            # Forward pass:
-            output = net.forward(x)  # raw scores (logits)
-            probs = softmax(output)  # convert scores to probabilities
+    # Trainingsschleife:
+    for epoch in range(epochs):  # Für jede Epoche
+        epoch_loss = 0.0  # Verlust für die aktuelle Epoche
+        correct = 0       # Anzahl der richtigen Vorhersagen
 
-            # Compute loss:
-            loss = cross_entropy_loss(probs, label)
-            epoch_loss += loss
+        # Schleife über jedes Beispiel; hier haben wir nur ein Beispiel.
+        for x, label in zip(x_train, y_train):  # x_train sind die Eingabedaten, y_train die Labels
+            # Vorwärtsdurchlauf:
+            output = net.forward(x)  # rohe Werte (Logits)
+            probs = softmax(output)  # Werte in Wahrscheinlichkeiten umwandeln
 
-            # Prediction:
-            pred = np.argmax(probs)
-            if pred == label:
-                correct += 1
+            # Verlust berechnen:
+            loss = cross_entropy_loss(probs, label)  # Verlustfunktion
+            epoch_loss += loss  # Verlust zur Gesamtsumme hinzufügen
 
-            # Compute gradient of loss with respect to logits:
-            # The derivative of cross-entropy loss w.r.t. the logits (after softmax) is:
-            # dL/dz = probs - y_true, where y_true is one-hot encoded.
-            dout = probs.copy()
-            dout[label] -= 1  # subtract 1 for the true class
+            # Vorhersage:
+            pred = np.argmax(probs)  # Vorhersage basierend auf den Wahrscheinlichkeiten
+            if pred == label:  # Wenn die Vorhersage korrekt ist
+                correct += 1  # Zähle die richtige Vorhersage
 
-            # Backward pass:
-            net.fc1.backward(dout)
-            net.fc2.backward(dout)
-            # Update parameters:
-            net.fc1.update_params(lr)
-            net.fc2.update_params(lr)
+            # Gradient des Verlusts bezüglich der Logits berechnen:
+            # Die Ableitung des Kreuzentropieverlusts bezüglich der Logits (nach Softmax) ist:
+            # dL/dz = probs - y_true, wobei y_true als One-Hot kodiert ist.
+            dout = probs.copy()  # Kopie der Wahrscheinlichkeiten
+            dout[label] -= 1  # 1 für die wahre Klasse abziehen
 
-        # Because we have one sample, accuracy is 100% if correct else 0%
-        accuracy = (correct / len(x_train)) * 100
+            # Rückwärtsdurchlauf:
+            net.fc1.backward(dout)  # Rückpropagation für die erste Schicht
+            net.fc2.backward(dout)  # Rückpropagation für die zweite Schicht
+            # Parameter aktualisieren:
+            net.fc1.update_params(lr)  # Parameter der ersten Schicht aktualisieren
+            net.fc2.update_params(lr)  # Parameter der zweiten Schicht aktualisieren
+
+        # Da wir nur ein Beispiel haben, ist die Genauigkeit 100%, wenn korrekt, sonst 0%
+        accuracy = (correct / len(x_train)) * 100  # Genauigkeit berechnen
+        # Berechnung der Genauigkeit auf den Testdaten
+        test_accuracy = evaluate_model(net, x_test, y_test)
         print(
-            f"Epoch {epoch + 1:3d} | Loss: {epoch_loss:.5f} | Accuracy: {accuracy:.1f}%"
+            f"Epoche {epoch + 1:3d} | Verlust: {epoch_loss:.5f} | Genauigkeit: {accuracy:.1f}% | Testgenauigkeit: {test_accuracy:.1f}%"
         )
 
-    print("\nTrained network parameters:")
-    print(net)
+    # Berechnung der Genauigkeit auf den Testdaten nach dem Training
+    print(
+        f"Testgenauigkeit nach dem Training: {evaluate_model(net, x_test, y_test):.1f}%"
+    )
+
+    print("\nTrainierte Netzwerkparameter:")
+    print(net)  # Ausgabe der trainierten Netzwerkparameter
+
     return
 
 
 @app.cell
+def _(np):
+    # Funktion zur Berechnung der Genauigkeit auf den Testdaten
+    def evaluate_model(net, x_test, y_test):
+        correct = 0  # Zähler für richtige Vorhersagen
+
+        # Schleife über jedes Testbeispiel
+        for x, label in zip(x_test, y_test):
+            # Vorwärtsdurchlauf
+            output = net.forward(x)  # Wahrscheinlichkeiten für jede Klasse
+            pred = np.argmax(output)  # Vorhersage basierend auf den Wahrscheinlichkeiten
+
+            # Überprüfen, ob die Vorhersage korrekt ist
+            if pred == label:
+                correct += 1  # Zähle die richtige Vorhersage
+
+        # Berechnung der Genauigkeit
+        accuracy = (correct / len(x_test)) * 100  # Genauigkeit in Prozent
+        return accuracy
+
+    return (evaluate_model,)
+
+
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
@@ -473,7 +519,7 @@ def _():
 
 @app.cell
 def _():
-    # Erzeuge hier das Objekt deiner Klasse und den Optimizer.
+    # Erzeuge hier das Objekt deiner Klasse.
     # Lege hier außerdem deine Loss-Funktion und die Anzahl der Epochen fest.
     return
 
